@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import Intents
 import json
 import os
 
@@ -11,8 +12,11 @@ if os.path.exists(data_file):
 else:
     data = {}
 
-# Initialize the bot
-bot = commands.Bot(command_prefix='!')
+# Define intents
+intents = Intents.default()
+
+# Initialize the bot with intents
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
