@@ -5,7 +5,7 @@ import json
 import os
 
 # Load or initialize the data file
-data_file = 'data.json'
+data_file = 'members.json'
 if os.path.exists(data_file):
     with open(data_file, 'r') as f:
         data = json.load(f)
