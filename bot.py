@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import shutil  # For file operations
 import time
+import re
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
