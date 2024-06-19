@@ -113,7 +113,7 @@ async def register(ctx, *args):
     shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
     print('Copied members.json to /var/www/sop/data/members.json on update.')
 
-    await ctx.reply(f'User {member.name} registered with osu! ID {osu_id} and status {highest_priority_status}')
+    await ctx.reply(f'You have been registered to our website members list!')
 
 # Command to remove a user from the registration JSON
 @bot.command()
