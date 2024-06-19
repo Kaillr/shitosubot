@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 import discord
 from discord.ext import commands
 import json
 import re
-import time
-from datetime import datetime
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -32,19 +29,11 @@ DEFAULT_STATUS = "member"
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
 
-# Start time of the bot session
-start_time = time.time()
-
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
-    await update_presence()
+    await bot.change_presence(activity=discord.Game(name="osu!"))
     print(f'Bot is online as {bot.user}')
-
-# Update bot presence with custom status
-async def update_presence():
-    activity = discord.Activity(name="osu!", type=discord.ActivityType.playing)
-    await bot.change_presence(activity=activity)
 
 # Debugging event to check if the bot is receiving commands
 @bot.event
@@ -159,18 +148,6 @@ async def remove(ctx, target_id: str = None):
 
     await ctx.reply('User not found in our website members list.')
 
-# Command to get the current session duration
-@bot.command()
-async def session(ctx):
-    current_time = time.time()
-    session_duration = current_time - start_time
-    minutes, seconds = divmod(session_duration, 60)
-    hours, minutes = divmod(minutes, 60)
-
-    await ctx.reply(f'Current session duration: {int(hours)} hours, {int(minutes)} minutes, {int(seconds)} seconds.')
-
 # Keep the bot running
 bot.run(TOKEN)
 
-=======
->>>>>>> origin/main
