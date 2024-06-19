@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import discord
 from discord.ext import commands
 import json
@@ -171,3 +172,5 @@ async def session(ctx):
 # Keep the bot running
 bot.run(TOKEN)
 
+=======
+>>>>>>> origin/main
