@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import re
+import shutil
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -28,6 +29,16 @@ DEFAULT_STATUS = "member"
 
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
+
+# Function to copy members.json to the desired directory
+def copy_members_json():
+    source = 'members.json'
+    destination = '/var/www/sop/data/members.json'
+    try:
+        shutil.copy(source, destination)
+        print(f'{source} has been copied to {destination}')
+    except IOError as e:
+        print(f'Unable to copy file. {e}')
 
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
@@ -102,6 +113,9 @@ async def register(ctx, *args):
     with open('members.json', 'w') as f:
         json.dump(data, f, indent=4)
 
+    # Copy updated members.json to the desired location
+    copy_members_json()
+
     await ctx.reply(f'User {member.name} registered with osu! ID {osu_id} and status {highest_priority_status}')
 
 # Command to remove a user from the registration JSON
@@ -140,6 +154,10 @@ async def remove(ctx, target_id: str = None):
                 del data['members'][user_id]
                 with open('members.json', 'w') as f:
                     json.dump(data, f, indent=4)
+                
+                # Copy updated members.json to the desired location
+                copy_members_json()
+
                 if str(ctx.author.id) == str(target_id):
                     await ctx.reply('You have been removed from our website members list.')
                 else:
@@ -150,4 +168,3 @@ async def remove(ctx, target_id: str = None):
 
 # Keep the bot running
 bot.run(TOKEN)
-
