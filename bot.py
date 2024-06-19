@@ -3,7 +3,7 @@ from discord.ext import commands
 import json
 import shutil  # For file operations
 import time
-import re  # Import the re module for regex operations
+import re  # For regular expressions
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -168,6 +168,36 @@ async def remove(ctx, target_id: str = None):
                 return
 
     await ctx.reply('User not found in our website members list.')
+
+# Command to timeout user 274897880664506368 for 2 minutes (specific to moderator role)
+@bot.command()
+async def alexisbeingafaggot(ctx):
+    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
+        return
+
+    # Check if the user is a moderator
+    is_moderator = any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles)
+
+    if not is_moderator:
+        await ctx.reply("You do not have permission to use this command.")
+        return
+
+    timeout_user_id = 274897880664506368
+    timeout_user = bot.get_user(timeout_user_id)
+
+    if timeout_user:
+        await ctx.guild.get_member(timeout_user_id).add_roles(ctx.guild.get_role(ROLE_IDS["Moderator"]))  # Replace with actual timeout role
+        await ctx.reply(f'{timeout_user.name} got timed out for being a faggot. They will be back in 2 minutes 😇')
+
+        # Implement timeout logic here (e.g., remove roles, mute, etc.)
+        await asyncio.sleep(120)  # Timeout duration in seconds (2 minutes)
+
+        await ctx.guild.get_member(timeout_user_id).remove_roles(ctx.guild.get_role(ROLE_IDS["Moderator"]))  # Remove timeout role after timeout ends
+        await ctx.send(f'{timeout_user.name} is no longer timed out.')
+
+    else:
+        await ctx.reply("User not found.")
 
 # Keep the bot running
 bot.run(TOKEN)
