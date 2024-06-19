@@ -30,7 +30,7 @@ DEFAULT_STATUS = "member"
 
 # Paths for JSON files
 MEMBERS_JSON_PATH = 'members.json'
-WEB_MEMBERS_JSON_PATH = '/var/www/sop/data/members.json'
+WEB_MEMBERS_JSON_PATH = '/var/www/sop/backend/data/members.json'
 
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
@@ -40,9 +40,9 @@ bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
 async def on_ready():
     await bot.change_presence(activity=discord.Game(name="osu!"))
     print(f'Bot is online as {bot.user}')
-    # Copy members.json to /var/www/sop/data/members.json on bot startup
+    # Copy members.json to /var/www/sop/backend/data/members.json on bot startup
     shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
-    print('Copied members.json to /var/www/sop/data/members.json on startup.')
+    print('Copied members.json to /var/www/sop/backend/data/members.json on startup.')
 
 # Debugging event to check if the bot is receiving commands
 @bot.event
