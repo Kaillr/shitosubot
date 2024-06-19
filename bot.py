@@ -1,8 +1,7 @@
 import discord
 from discord.ext import commands
 import json
-import re
-import shutil
+import shutil  # For file operations
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -27,24 +26,21 @@ ROLE_IDS = {
 # Default status for members without specific roles
 DEFAULT_STATUS = "member"
 
+# Paths for JSON files
+MEMBERS_JSON_PATH = 'members.json'
+WEB_MEMBERS_JSON_PATH = '/var/www/sop/data/members.json'
+
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
-
-# Function to copy members.json to the desired directory
-def copy_members_json():
-    source = 'members.json'
-    destination = '/var/www/sop/data/members.json'
-    try:
-        shutil.copy(source, destination)
-        print(f'{source} has been copied to {destination}')
-    except IOError as e:
-        print(f'Unable to copy file. {e}')
 
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Game(name="osu!"))
     print(f'Bot is online as {bot.user}')
+    # Copy members.json to /var/www/sop/data/members.json on bot startup
+    shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
+    print('Copied members.json to /var/www/sop/data/members.json on startup.')
 
 # Debugging event to check if the bot is receiving commands
 @bot.event
@@ -78,7 +74,7 @@ async def register(ctx, *args):
     guild = ctx.guild
 
     # Check if the user is already registered by osu! ID or Discord ID
-    with open('members.json', 'r') as f:
+    with open(MEMBERS_JSON_PATH, 'r') as f:
         data = json.load(f)
 
     for user_id, info in data['members'].items():
@@ -110,11 +106,12 @@ async def register(ctx, *args):
         'status': highest_priority_status
     }
 
-    with open('members.json', 'w') as f:
+    with open(MEMBERS_JSON_PATH, 'w') as f:
         json.dump(data, f, indent=4)
 
-    # Copy updated members.json to the desired location
-    copy_members_json()
+    # Copy updated members.json to /var/www/sop/data/members.json
+    shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
+    print('Copied members.json to /var/www/sop/data/members.json on update.')
 
     await ctx.reply(f'User {member.name} registered with osu! ID {osu_id} and status {highest_priority_status}')
 
@@ -134,7 +131,7 @@ async def remove(ctx, target_id: str = None):
     if target_id is None:
         target_id = str(member.id)  # Default to the user's own Discord ID if no target ID is provided
 
-    with open('members.json', 'r') as f:
+    with open(MEMBERS_JSON_PATH, 'r') as f:
         data = json.load(f)
 
     # If target_id is a mention, extract the user ID
@@ -152,11 +149,11 @@ async def remove(ctx, target_id: str = None):
         for user_id, info in list(data['members'].items()):
             if info.get('discord_id') == str(target_id):
                 del data['members'][user_id]
-                with open('members.json', 'w') as f:
+                with open(MEMBERS_JSON_PATH, 'w') as f:
                     json.dump(data, f, indent=4)
-                
-                # Copy updated members.json to the desired location
-                copy_members_json()
+                # Copy updated members.json to /var/www/sop/data/members.json
+                shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
+                print('Copied members.json to /var/www/sop/data/members.json on update.')
 
                 if str(ctx.author.id) == str(target_id):
                     await ctx.reply('You have been removed from our website members list.')
