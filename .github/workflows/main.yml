@@ -27,3 +27,4 @@ jobs:
           git pull origin main
           git status
           npm install --only=prod
+          sudo systemctl restart shitosubot
