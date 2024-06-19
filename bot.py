@@ -67,12 +67,12 @@ async def register(ctx, *args):
         return
 
     if len(args) < 1:
-        await ctx.reply('Please provide an osu! ID.')
+        await ctx.reply('Please provide your osu! ID.')
         return
 
     osu_id = args[0]
     if not osu_id.isdigit():
-        await ctx.reply('osu! ID should be a number.')
+        await ctx.reply('Invalid osu! ID')
         return
 
     osu_id = int(osu_id)
