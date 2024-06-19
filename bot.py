@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import shutil  # For file operations
+import time
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -47,11 +48,15 @@ async def on_ready():
 async def on_command(ctx):
     print(f'Command received: {ctx.message.content}')
 
-# A simple command to test if the bot is working
+# Command to check bot's latency
 @bot.command()
 async def ping(ctx):
     print('Ping command received')
-    await ctx.reply('Pong!')
+    start_time = time.monotonic()
+    message = await ctx.reply('Pong!')
+    end_time = time.monotonic()
+    latency_ms = round((end_time - start_time) * 1000)
+    await message.edit(content=f'Pong! ({latency_ms} ms)')
 
 # Command to register a user with osu! ID and roles-based status
 @bot.command()
@@ -113,7 +118,7 @@ async def register(ctx, *args):
     shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
     print('Copied members.json to /var/www/sop/data/members.json on update.')
 
-    await ctx.reply(f'You have been registered to our website members list!')
+    await ctx.reply(f'User {member.name} registered with osu! ID {osu_id} and status {highest_priority_status}')
 
 # Command to remove a user from the registration JSON
 @bot.command()
