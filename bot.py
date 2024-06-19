@@ -3,7 +3,7 @@ from discord.ext import commands
 import json
 import shutil  # For file operations
 import time
-import re
+import re  # Import the re module for regex operations
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -102,13 +102,13 @@ async def register(ctx, *args):
         highest_priority_status = DEFAULT_STATUS
 
     # Fetch username (not nickname)
-    username = member.name
+    discord_username = member.name
 
     # Add or update member data
     data['members'][str(member.id)] = {
         'osu_id': osu_id,
         'discord_id': str(member.id),
-        'username': username,
+        'discord_username': discord_username,
         'status': highest_priority_status
     }
 
