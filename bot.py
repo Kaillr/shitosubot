@@ -172,7 +172,7 @@ async def remove(ctx, target_id: str = None):
 
 # Command to timeout user 274897880664506368 for 2 minutes (specific to moderator role)
 @bot.command()
-async def timeoutalex(ctx):
+async def alexisbeingafaggot(ctx):
     if ctx.channel.id != ALLOWED_CHANNEL_ID:
         await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
         return
@@ -190,7 +190,7 @@ async def timeoutalex(ctx):
     if timeout_user:
         # Implement timeout logic (e.g., remove roles, mute, etc.)
         # For demonstration, let's simulate a timeout by sending a message and then waiting for 2 minutes
-        await ctx.reply(f'{timeout_user.name} got timed out for being dumb. They will be back in 2 minutes.')
+        await ctx.reply(f'{timeout_user.name} got timed out for being a faggot. They will be back in 2 minutes 😇')
 
         # Simulate timeout duration (2 minutes)
         await asyncio.sleep(120)
