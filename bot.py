@@ -1,8 +1,9 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import json
 import shutil  # For file operations
 import time
+import asyncio
 import re  # For regular expressions
 
 # Use the provided token
@@ -30,7 +31,7 @@ DEFAULT_STATUS = "member"
 
 # Paths for JSON files
 MEMBERS_JSON_PATH = 'members.json'
-WEB_MEMBERS_JSON_PATH = '/var/www/sop/backend/data/members.json'
+WEB_MEMBERS_JSON_PATH = '/var/www/sop/data/members.json'
 
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
@@ -40,9 +41,9 @@ bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
 async def on_ready():
     await bot.change_presence(activity=discord.Game(name="osu!"))
     print(f'Bot is online as {bot.user}')
-    # Copy members.json to /var/www/sop/backend/data/members.json on bot startup
+    # Copy members.json to /var/www/sop/data/members.json on bot startup
     shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
-    print('Copied members.json to /var/www/sop/backend/data/members.json on startup.')
+    print('Copied members.json to /var/www/sop/data/members.json on startup.')
 
 # Debugging event to check if the bot is receiving commands
 @bot.event
@@ -67,12 +68,12 @@ async def register(ctx, *args):
         return
 
     if len(args) < 1:
-        await ctx.reply('Please provide your osu! ID.')
+        await ctx.reply('Please provide an osu! ID.')
         return
 
     osu_id = args[0]
     if not osu_id.isdigit():
-        await ctx.reply('Invalid osu! ID')
+        await ctx.reply('osu! ID should be a number.')
         return
 
     osu_id = int(osu_id)
@@ -102,13 +103,13 @@ async def register(ctx, *args):
         highest_priority_status = DEFAULT_STATUS
 
     # Fetch username (not nickname)
-    discord_username = member.name
+    username = member.name
 
     # Add or update member data
     data['members'][str(member.id)] = {
         'osu_id': osu_id,
         'discord_id': str(member.id),
-        'discord_username': discord_username,
+        'username': username,
         'status': highest_priority_status
     }
 
@@ -119,7 +120,7 @@ async def register(ctx, *args):
     shutil.copy(MEMBERS_JSON_PATH, WEB_MEMBERS_JSON_PATH)
     print('Copied members.json to /var/www/sop/data/members.json on update.')
 
-    await ctx.reply(f'You are now registered to our website member list!')
+    await ctx.reply(f'User {member.name} registered with osu! ID {osu_id} and status {highest_priority_status}')
 
 # Command to remove a user from the registration JSON
 @bot.command()
@@ -171,7 +172,7 @@ async def remove(ctx, target_id: str = None):
 
 # Command to timeout user 274897880664506368 for 2 minutes (specific to moderator role)
 @bot.command()
-async def alexisbeingafaggot(ctx):
+async def timeoutalex(ctx):
     if ctx.channel.id != ALLOWED_CHANNEL_ID:
         await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
         return
@@ -187,13 +188,14 @@ async def alexisbeingafaggot(ctx):
     timeout_user = bot.get_user(timeout_user_id)
 
     if timeout_user:
-        await ctx.guild.get_member(timeout_user_id).add_roles(ctx.guild.get_role(ROLE_IDS["Moderator"]))  # Replace with actual timeout role
-        await ctx.reply(f'{timeout_user.name} got timed out for being a faggot. They will be back in 2 minutes 😇')
+        # Implement timeout logic (e.g., remove roles, mute, etc.)
+        # For demonstration, let's simulate a timeout by sending a message and then waiting for 2 minutes
+        await ctx.reply(f'{timeout_user.name} got timed out for being dumb. They will be back in 2 minutes.')
 
-        # Implement timeout logic here (e.g., remove roles, mute, etc.)
-        await asyncio.sleep(120)  # Timeout duration in seconds (2 minutes)
+        # Simulate timeout duration (2 minutes)
+        await asyncio.sleep(120)
 
-        await ctx.guild.get_member(timeout_user_id).remove_roles(ctx.guild.get_role(ROLE_IDS["Moderator"]))  # Remove timeout role after timeout ends
+        # Notify that the timeout is over
         await ctx.send(f'{timeout_user.name} is no longer timed out.')
 
     else:
