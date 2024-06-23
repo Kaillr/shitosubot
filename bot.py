@@ -31,7 +31,7 @@ DEFAULT_STATUS = "member"
 
 # Paths for JSON files
 MEMBERS_JSON_PATH = 'members.json'
-WEB_MEMBERS_JSON_PATH = '/var/www/sop/data/members.json'
+WEB_MEMBERS_JSON_PATH = '/var/www/sop/backend/data/members.json'
 
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
