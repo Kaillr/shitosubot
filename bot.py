@@ -176,7 +176,7 @@ async def remove(ctx, target_id: str = None):
     await ctx.reply('User not found in our website members list.')
 
 @bot.command()
-async def createreactionroles(ctx, channel_or_title: str, *args):
+async def createreactionroles(ctx, channel_or_title_or_color: str, *args):
     # Initialize variables
     channel_id = None
     title = None
@@ -184,10 +184,17 @@ async def createreactionroles(ctx, channel_or_title: str, *args):
     role_pairs = []
 
     # Check if the first argument is a channel ID
-    if channel_or_title.isdigit() and len(channel_or_title) == 18:
-        channel_id = int(channel_or_title)
+    if channel_or_title_or_color.isdigit() and len(channel_or_title_or_color) == 18:
+        channel_id = int(channel_or_title_or_color)
     else:
-        title = channel_or_title
+        # If not a channel ID, it should be the title (which is enclosed in quotes) or color (which starts with #)
+        if channel_or_title_or_color.startswith('"') and channel_or_title_or_color.endswith('"'):
+            title = channel_or_title_or_color[1:-1]
+        elif channel_or_title_or_color.startswith('#') and re.match(r'^#[0-9a-fA-F]{6}$', channel_or_title_or_color):
+            color = channel_or_title_or_color
+        else:
+            await ctx.reply('Please provide a valid channel ID, title (in quotes), or color (starting with #).')
+            return
 
     # Process remaining arguments
     for arg in args:
