@@ -181,20 +181,25 @@ async def createreactionroles(ctx, title: str = None, *roles: str):
         return
 
     if not title:
-        await ctx.reply('Please provide a title for the reaction role message.')
+        await ctx.reply('Please provide a title for the reaction role message.\n'
+                        'Usage: !createreactionroles "Title" ":emoji: @role" ":emoji: @role"')
         return
 
     if len(roles) < 1:
-        await ctx.reply('Please provide at least one emoji-role pair in the format ":emoji: @role".')
+        await ctx.reply('Please provide at least one emoji-role pair in the format ":emoji: @role".\n'
+                        'Usage: !createreactionroles "Title" ":emoji: @role" ":emoji: @role"')
         return
 
     role_pairs = []
     for role_pair in roles:
-        match = re.match(r'(<:\w+:\d+>|:\w+:)\s+<@&(\d+)>', role_pair)
+        role_pair = role_pair.strip()  # Remove leading and trailing whitespace
+        match = re.match(r'(<a?:\w+:\d+>|:\w+:)\s*<@&(\d+)>', role_pair)
         if match:
             role_pairs.append((match.group(1), match.group(2)))
         else:
-            await ctx.reply(f'Invalid format for role pair: {role_pair}')
+            await ctx.reply(f'Invalid format for role pair: {role_pair}\n'
+                            'Please use the format ":emoji: @role".\n'
+                            'Usage: !createreactionroles "Title" ":emoji: @role" ":emoji: @role"')
             return
 
     # Create embed
@@ -231,10 +236,10 @@ async def createreactionroles(ctx, title: str = None, *roles: str):
 
     await ctx.reply('Reaction role message created successfully.')
 
-# Event to assign or remove roles based on reactions
+# Event handler for adding roles on reaction add
 @bot.event
 async def on_raw_reaction_add(payload):
-    if payload.member.bot:
+    if payload.user_id == bot.user.id:
         return
 
     with open('reaction_roles.json', 'r') as f:
@@ -251,6 +256,7 @@ async def on_raw_reaction_add(payload):
                     await member.add_roles(role)
                     print(f'Added role {role.name} to {member.name}')
 
+# Event handler for removing roles on reaction remove
 @bot.event
 async def on_raw_reaction_remove(payload):
     guild = bot.get_guild(payload.guild_id)
