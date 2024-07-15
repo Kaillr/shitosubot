@@ -352,7 +352,19 @@ async def uptime(ctx):
     hours, remainder = divmod(delta.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
 
-    await ctx.send(f"Uptime: {days} days, {hours} hours, {minutes} minutes, {seconds} seconds")
+    # Construct the uptime message
+    uptime_msg = "Uptime: "
+
+    # Conditional formatting based on elapsed time
+    if days > 0:
+        uptime_msg += f"{days}d "
+    if hours > 0:
+        uptime_msg += f"{hours}h "
+    if minutes > 0:
+        uptime_msg += f"{minutes}m "
+    uptime_msg += f"{seconds}s"
+
+    await ctx.send(uptime_msg)
 
 # Run the bot with the provided token
 bot.run(TOKEN)
