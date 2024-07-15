@@ -170,5 +170,97 @@ async def remove(ctx, target_id: str = None):
 
     await ctx.reply('User not found in our website members list.')
 
+# New command to create reaction roles
+@bot.command()
+async def createreactionroles(ctx, title: str, *roles: str):
+    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
+        return
+    
+    if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
+        await ctx.reply("You do not have permission to use this command.")
+        return
+
+    if len(roles) < 1:
+        await ctx.reply('Please provide at least one emoji-role pair.')
+        return
+
+    role_pairs = []
+    for role_pair in roles:
+        match = re.match(r'(<:\w+:\d+>|:\w+:)\s+<@&(\d+)>', role_pair)
+        if match:
+            role_pairs.append((match.group(1), match.group(2)))
+        else:
+            await ctx.reply(f'Invalid format for role pair: {role_pair}')
+            return
+
+    # Create embed
+    embed = discord.Embed(title=title, color=discord.Color.blue())
+    embed.set_footer(text="React to this message to get the corresponding role")
+
+    description = ""
+    for emoji, role_id in role_pairs:
+        role = ctx.guild.get_role(int(role_id))
+        if role:
+            description += f"{emoji} - {role.name}\n"
+    embed.description = description
+
+    message = await ctx.send(embed=embed)
+    
+    # React to the message with the emojis
+    for emoji, _ in role_pairs:
+        await message.add_reaction(emoji)
+    
+    # Save message ID, channel ID, and role pairs for future use
+    with open('reaction_roles.json', 'r') as f:
+        reaction_roles_data = json.load(f)
+
+    reaction_roles_data[str(message.id)] = {
+        'channel_id': ctx.channel.id,
+        'role_pairs': role_pairs
+    }
+
+    with open('reaction_roles.json', 'w') as f:
+        json.dump(reaction_roles_data, f, indent=4)
+
+    await ctx.reply('Reaction role message created successfully.')
+
+# Event to assign or remove roles based on reactions
+@bot.event
+async def on_raw_reaction_add(payload):
+    if payload.member.bot:
+        return
+
+    with open('reaction_roles.json', 'r') as f:
+        reaction_roles_data = json.load(f)
+
+    if str(payload.message_id) in reaction_roles_data:
+        role_pairs = reaction_roles_data[str(payload.message_id)]['role_pairs']
+        guild = bot.get_guild(payload.guild_id)
+        member = guild.get_member(payload.user_id)
+        for emoji, role_id in role_pairs:
+            if str(payload.emoji) == emoji:
+                role = guild.get_role(int(role_id))
+                if role:
+                    await member.add_roles(role)
+                    print(f'Added role {role.name} to {member.name}')
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    guild = bot.get_guild(payload.guild_id)
+    member = guild.get_member(payload.user_id)
+
+    with open('reaction_roles.json', 'r') as f:
+        reaction_roles_data = json.load(f)
+
+    if str(payload.message_id) in reaction_roles_data:
+        role_pairs = reaction_roles_data[str(payload.message_id)]['role_pairs']
+        for emoji, role_id in role_pairs:
+            if str(payload.emoji) == emoji:
+                role = guild.get_role(int(role_id))
+                if role:
+                    await member.remove_roles(role)
+                    print(f'Removed role {role.name} from {member.name}')
+
 # Keep the bot running
 bot.run(TOKEN)
