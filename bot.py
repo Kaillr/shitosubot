@@ -171,25 +171,39 @@ async def remove(ctx, target_id: str = None):
     await ctx.reply('User not found in our website members list.')
 
 @bot.command()
-async def createreactionroles(ctx, channel_id: int, *args):
+async def createreactionroles(ctx, channel_id_or_title: Union[int, str], *args):
     if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
         await ctx.reply("You do not have permission to use this command.")
         return
+
+    # Check if the first argument is a valid channel ID
+    channel_id = None
+    if isinstance(channel_id_or_title, int):
+        channel_id = channel_id_or_title
+
+    # Determine title and other arguments based on whether channel_id was provided
+    if channel_id is None:
+        title = channel_id_or_title  # If not channel_id, assume it's the title
+        args = args  # Arguments remain unchanged
+    else:
+        if len(args) < 2:
+            await ctx.reply('Please provide a title for the reaction role message, a color (hex code), and at least one emoji-role pair.\n'
+                            'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
+            return
+        title = args[0]
+        args = args[1:]  # Skip the title and process the rest
+
+    # Check if title is within quotes and adjust the arguments accordingly
+    if title.startswith('"') and title.endswith('"'):
+        title = title[1:-1]
 
     if len(args) < 2:
         await ctx.reply('Please provide a title for the reaction role message, a color (hex code), and at least one emoji-role pair.\n'
                         'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
         return
 
-    # Check if a channel_id was provided
-    target_channel = ctx.guild.get_channel(channel_id)
-    if target_channel is None:
-        await ctx.reply(f'Invalid channel ID provided: {channel_id}.')
-        return
-
-    title = args[0]
-    color = args[1]
-    role_pairs = args[2:]
+    color = args[0]
+    role_pairs = args[1:]
 
     # Validate color format (must be a hex code)
     if not re.match(r'^#[0-9a-fA-F]{6}$', color):
@@ -207,6 +221,9 @@ async def createreactionroles(ctx, channel_id: int, *args):
                             'Please use the format ":emoji: @role".\n'
                             'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
             return
+
+    # Fetch the target channel based on provided channel_id or use current channel
+    target_channel = ctx.guild.get_channel(channel_id) if channel_id else ctx.channel
 
     # Create embed
     embed = discord.Embed(title=title, color=int(color.lstrip('#'), 16))
