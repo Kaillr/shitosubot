@@ -176,29 +176,34 @@ async def remove(ctx, target_id: str = None):
     await ctx.reply('User not found in our website members list.')
 
 @bot.command()
-async def createreactionroles(ctx, channel_id_or_title: str, *args):
+async def createreactionroles(ctx, *args):
     # Initialize variables
     channel_id = None
     title = None
     color = None
     role_pairs = []
 
-    # Check if the first argument is a channel ID or title
-    if channel_id_or_title.isdigit() and len(channel_id_or_title) == 18:
-        channel_id = int(channel_id_or_title)
-    else:
-        title = channel_id_or_title
-
-    # Process remaining arguments
+    # Process arguments
     for arg in args:
-        if arg.startswith('#') and re.match(r'^#[0-9a-fA-F]{6}$', arg):
+        # Check if argument is a channel ID
+        if arg.isdigit() and len(arg) == 18:
+            channel_id = int(arg)
+        # Check if argument is a title
+        elif arg.startswith('"') and arg.endswith('"'):
+            title = arg[1:-1]
+        # Check if argument is a color
+        elif arg.startswith('#') and re.match(r'^#[0-9a-fA-F]{6}$', arg):
             color = arg
+        # Check if argument is a role or emoji pair
         elif arg.startswith('<@&') and arg.endswith('>'):
             role_pairs.append(arg)
         elif arg.startswith(':') and arg.endswith(':'):
             role_pairs.append(arg)
 
     # Validate required parameters
+    if not channel_id:
+        await ctx.reply('Please provide a valid channel ID.')
+        return
     if not title:
         await ctx.reply('Please provide a title for the reaction roles message.')
         return
@@ -224,11 +229,18 @@ async def createreactionroles(ctx, channel_id_or_title: str, *args):
         description += f"{item}\n"
     embed.description = description
 
-    message = await target_channel.send(embed=embed)
+    try:
+        message = await target_channel.send(embed=embed)
 
-    # React to the message with emojis
-    for item in role_pairs:
-        await message.add_reaction(item)
+        # React to the message with emojis
+        for item in role_pairs:
+            await message.add_reaction(item)
+
+    except discord.errors.HTTPException as e:
+        await ctx.reply(f"Failed to create reaction roles message: {e}")
+        return
+
+    await ctx.reply('Reaction roles message created successfully.')
 
 # Command to add reaction roles to an existing message
 @bot.command()
