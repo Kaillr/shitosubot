@@ -170,19 +170,22 @@ async def remove(ctx, target_id: str = None):
 
     await ctx.reply('User not found in our website members list.')
 
-# New command to create reaction roles
 @bot.command()
-async def createreactionroles(ctx, title: str, *roles: str):
+async def createreactionroles(ctx, title: str = None, *roles: str):
     if ctx.channel.id != ALLOWED_CHANNEL_ID:
         await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
         return
-    
+
     if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
         await ctx.reply("You do not have permission to use this command.")
         return
 
+    if not title:
+        await ctx.reply('Please provide a title for the reaction role message.')
+        return
+
     if len(roles) < 1:
-        await ctx.reply('Please provide at least one emoji-role pair.')
+        await ctx.reply('Please provide at least one emoji-role pair in the format ":emoji: @role".')
         return
 
     role_pairs = []
@@ -212,8 +215,11 @@ async def createreactionroles(ctx, title: str, *roles: str):
         await message.add_reaction(emoji)
     
     # Save message ID, channel ID, and role pairs for future use
-    with open('reaction_roles.json', 'r') as f:
-        reaction_roles_data = json.load(f)
+    try:
+        with open('reaction_roles.json', 'r') as f:
+            reaction_roles_data = json.load(f)
+    except FileNotFoundError:
+        reaction_roles_data = {}
 
     reaction_roles_data[str(message.id)] = {
         'channel_id': ctx.channel.id,
