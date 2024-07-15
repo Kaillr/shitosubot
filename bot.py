@@ -6,6 +6,7 @@ import time
 import asyncio
 import re  # For regular expressions
 from datetime import datetime
+from typing import Union  # Import Union from typing module
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
