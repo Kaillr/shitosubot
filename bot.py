@@ -171,18 +171,20 @@ async def remove(ctx, target_id: str = None):
     await ctx.reply('User not found in our website members list.')
 
 @bot.command()
-async def createreactionroles(ctx, *args):
-    if ctx.channel.id != ALLOWED_CHANNEL_ID:
-        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
-        return
-
+async def createreactionroles(ctx, channel_id: int, *args):
     if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
         await ctx.reply("You do not have permission to use this command.")
         return
 
     if len(args) < 2:
         await ctx.reply('Please provide a title for the reaction role message, a color (hex code), and at least one emoji-role pair.\n'
-                        'Usage: !createreactionroles "Title" #c249ff :emoji: @role :emoji: @role')
+                        'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
+        return
+
+    # Check if a channel_id was provided
+    target_channel = ctx.guild.get_channel(channel_id)
+    if target_channel is None:
+        await ctx.reply(f'Invalid channel ID provided: {channel_id}.')
         return
 
     title = args[0]
@@ -203,7 +205,7 @@ async def createreactionroles(ctx, *args):
         else:
             await ctx.reply(f'Invalid format for role pair: {role_pair}\n'
                             'Please use the format ":emoji: @role".\n'
-                            'Usage: !createreactionroles "Title" #c249ff :emoji: @role :emoji: @role')
+                            'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
             return
 
     # Create embed
@@ -217,7 +219,7 @@ async def createreactionroles(ctx, *args):
             description += f"{emoji} - {role.name}\n"
     embed.description = description
 
-    message = await ctx.send(embed=embed)
+    message = await target_channel.send(embed=embed)
     
     # React to the message with the emojis
     for emoji, _ in parsed_role_pairs:
@@ -231,7 +233,7 @@ async def createreactionroles(ctx, *args):
         reaction_roles_data = {}
 
     reaction_roles_data[str(message.id)] = {
-        'channel_id': ctx.channel.id,
+        'channel_id': target_channel.id,
         'role_pairs': parsed_role_pairs
     }
 
