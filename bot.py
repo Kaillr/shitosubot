@@ -5,6 +5,7 @@ import shutil  # For file operations
 import time
 import asyncio
 import re  # For regular expressions
+from datetime import datetime
 
 # Use the provided token
 TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
@@ -35,6 +36,9 @@ WEB_MEMBERS_JSON_PATH = '/var/www/sop/backend/data/members.json'
 
 # Create an instance of a bot with the specified intents and case insensitivity
 bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
+
+# Store bot startup time
+bot.startup_time = datetime.now()
 
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
@@ -170,6 +174,7 @@ async def remove(ctx, target_id: str = None):
 
     await ctx.reply('User not found in our website members list.')
 
+# Command to create reaction roles message
 @bot.command()
 async def createreactionroles(ctx, channel_id_or_title: Union[int, str], *args):
     if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
@@ -257,123 +262,96 @@ async def createreactionroles(ctx, channel_id_or_title: Union[int, str], *args):
     with open('reaction_roles.json', 'w') as f:
         json.dump(reaction_roles_data, f, indent=4)
 
-# Event handler for adding roles on reaction add
-@bot.event
-async def on_raw_reaction_add(payload):
-    if payload.user_id == bot.user.id:
-        return
+    # No reply here to indicate message creation success
 
-    with open('reaction_roles.json', 'r') as f:
-        reaction_roles_data = json.load(f)
-
-    if str(payload.message_id) in reaction_roles_data:
-        role_pairs = reaction_roles_data[str(payload.message_id)]['role_pairs']
-        guild = bot.get_guild(payload.guild_id)
-        member = guild.get_member(payload.user_id)
-        for emoji, role_id in role_pairs:
-            if str(payload.emoji) == emoji:
-                role = guild.get_role(int(role_id))
-                if role:
-                    await member.add_roles(role)
-                    print(f'Added role {role.name} to {member.name}')
-
-# Event handler for removing roles on reaction remove
-@bot.event
-async def on_raw_reaction_remove(payload):
-    guild = bot.get_guild(payload.guild_id)
-    member = guild.get_member(payload.user_id)
-
-    with open('reaction_roles.json', 'r') as f:
-        reaction_roles_data = json.load(f)
-
-    if str(payload.message_id) in reaction_roles_data:
-        role_pairs = reaction_roles_data[str(payload.message_id)]['role_pairs']
-        for emoji, role_id in role_pairs:
-            if str(payload.emoji) == emoji:
-                role = guild.get_role(int(role_id))
-                if role:
-                    await member.remove_roles(role)
-                    print(f'Removed role {role.name} from {member.name}')
-
+# Command to add reaction roles to an existing message
 @bot.command()
-async def addreactionroles(ctx, message_id: int, *roles: discord.Role):
-    if ctx.channel.id != ALLOWED_CHANNEL_ID:
-        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
-        return
-
+async def addreactionroles(ctx, message_id: int, *role_pairs):
     if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
         await ctx.reply("You do not have permission to use this command.")
         return
 
-    # Fetch the reaction role data
+    # Fetch the message object
+    try:
+        message = await ctx.channel.fetch_message(message_id)
+    except discord.NotFound:
+        await ctx.reply(f"Message with ID {message_id} not found in this channel.")
+        return
+
+    parsed_role_pairs = []
+    for role_pair in role_pairs:
+        role_pair = role_pair.strip()  # Remove leading and trailing whitespace
+        match = re.match(r'(<a?:\w+:\d+>|:\w+:)\s*<@&(\d+)>', role_pair)
+        if match:
+            parsed_role_pairs.append((match.group(1), match.group(2)))
+        else:
+            await ctx.reply(f'Invalid format for role pair: {role_pair}\n'
+                            'Please use the format ":emoji: @role".\n'
+                            'Usage: !addreactionroles (message_id) :emoji: @role :emoji: @role')
+            return
+
+    # Add reactions to the message
+    for emoji, _ in parsed_role_pairs:
+        await message.add_reaction(emoji)
+
+    # Update reaction roles data (if needed)
     try:
         with open('reaction_roles.json', 'r') as f:
             reaction_roles_data = json.load(f)
     except FileNotFoundError:
-        await ctx.reply('No reaction roles data found.')
-        return
+        reaction_roles_data = {}
 
-    # Check if the provided message_id exists in reaction_roles_data
-    str_message_id = str(message_id)
-    if str_message_id not in reaction_roles_data:
-        await ctx.reply(f'Reaction role message with ID {message_id} not found.')
-        return
+    reaction_roles_data[str(message.id)] = {
+        'channel_id': message.channel.id,
+        'role_pairs': parsed_role_pairs
+    }
 
-    # Get the existing role pairs
-    role_pairs = reaction_roles_data[str_message_id]['role_pairs']
-
-    # Append new roles to the existing role_pairs
-    for role in roles:
-        role_pairs.append((f'<:role_{role.id}>', str(role.id)))  # Use a unique emoji for each role
-
-    # Update reaction_roles_data with the modified role_pairs
-    reaction_roles_data[str_message_id]['role_pairs'] = role_pairs
-
-    # Save the updated reaction_roles_data
     with open('reaction_roles.json', 'w') as f:
         json.dump(reaction_roles_data, f, indent=4)
 
-    await ctx.reply(f'Added {len(roles)} roles to reaction role message {message_id}.')
+    # No reply here to indicate success
 
+# Command to remove reaction roles from an existing message
 @bot.command()
-async def addreactionroles(ctx, message_id: int, *roles: discord.Role):
-    if ctx.channel.id != ALLOWED_CHANNEL_ID:
-        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
-        return
-
+async def removereactionroles(ctx, message_id: int):
     if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
         await ctx.reply("You do not have permission to use this command.")
         return
 
-    # Fetch the reaction role data
+    # Fetch the message object
+    try:
+        message = await ctx.channel.fetch_message(message_id)
+    except discord.NotFound:
+        await ctx.reply(f"Message with ID {message_id} not found in this channel.")
+        return
+
+    # Clear all reactions from the message
+    await message.clear_reactions()
+
+    # Update reaction roles data (if needed)
     try:
         with open('reaction_roles.json', 'r') as f:
             reaction_roles_data = json.load(f)
     except FileNotFoundError:
-        await ctx.reply('No reaction roles data found.')
-        return
+        reaction_roles_data = {}
 
-    # Check if the provided message_id exists in reaction_roles_data
-    str_message_id = str(message_id)
-    if str_message_id not in reaction_roles_data:
-        await ctx.reply(f'Reaction role message with ID {message_id} not found.')
-        return
+    if str(message.id) in reaction_roles_data:
+        del reaction_roles_data[str(message.id)]
 
-    # Get the existing role pairs
-    role_pairs = reaction_roles_data[str_message_id]['role_pairs']
-
-    # Append new roles to the existing role_pairs
-    for role in roles:
-        role_pairs.append((f'<:role_{role.id}>', str(role.id)))  # Use a unique emoji for each role
-
-    # Update reaction_roles_data with the modified role_pairs
-    reaction_roles_data[str_message_id]['role_pairs'] = role_pairs
-
-    # Save the updated reaction_roles_data
     with open('reaction_roles.json', 'w') as f:
         json.dump(reaction_roles_data, f, indent=4)
 
-    await ctx.reply(f'Added {len(roles)} roles to reaction role message {message_id}.')
+    # No reply here to indicate success
 
-# Keep the bot running
+# Command to check bot's uptime
+@bot.command()
+async def uptime(ctx):
+    delta = datetime.now() - bot.startup_time
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    await ctx.send(f"Uptime: {days} days, {hours} hours, {minutes} minutes, {seconds} seconds")
+
+# Run the bot with the provided token
 bot.run(TOKEN)
