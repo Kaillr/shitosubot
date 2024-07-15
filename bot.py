@@ -175,95 +175,60 @@ async def remove(ctx, target_id: str = None):
 
     await ctx.reply('User not found in our website members list.')
 
-# Command to create reaction roles message
 @bot.command()
-async def createreactionroles(ctx, channel_id_or_title: Union[int, str], *args):
-    if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
-        await ctx.reply("You do not have permission to use this command.")
-        return
-
-    # Check if the first argument is a valid channel ID
+async def createreactionroles(ctx, channel_id_or_title: str, *args):
+    # Initialize variables
     channel_id = None
-    if isinstance(channel_id_or_title, int):
-        channel_id = channel_id_or_title
+    title = None
+    color = None
+    role_pairs = []
 
-    # Determine title and other arguments based on whether channel_id was provided
-    if channel_id is None:
-        title = channel_id_or_title  # If not channel_id, assume it's the title
-        args = args  # Arguments remain unchanged
+    # Check if the first argument is a channel ID or title
+    if channel_id_or_title.isdigit() and len(channel_id_or_title) == 18:
+        channel_id = int(channel_id_or_title)
     else:
-        if len(args) < 2:
-            await ctx.reply('Please provide a title for the reaction role message, a color (hex code), and at least one emoji-role pair.\n'
-                            'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
-            return
-        title = args[0]
-        args = args[1:]  # Skip the title and process the rest
+        title = channel_id_or_title
 
-    # Check if title is within quotes and adjust the arguments accordingly
-    if title.startswith('"') and title.endswith('"'):
-        title = title[1:-1]
+    # Process remaining arguments
+    for arg in args:
+        if arg.startswith('#') and re.match(r'^#[0-9a-fA-F]{6}$', arg):
+            color = arg
+        elif arg.startswith('<@&') and arg.endswith('>'):
+            role_pairs.append(arg)
+        elif arg.startswith(':') and arg.endswith(':'):
+            role_pairs.append(arg)
 
-    if len(args) < 2:
-        await ctx.reply('Please provide a title for the reaction role message, a color (hex code), and at least one emoji-role pair.\n'
-                        'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
+    # Validate required parameters
+    if not title:
+        await ctx.reply('Please provide a title for the reaction roles message.')
+        return
+    if not color:
+        await ctx.reply('Please provide a valid color in hex format (e.g., #c249ff).')
+        return
+    if not role_pairs:
+        await ctx.reply('Please provide at least one role-emoji pair.')
         return
 
-    color = args[0]
-    role_pairs = args[1:]
-
-    # Validate color format (must be a hex code)
-    if not re.match(r'^#[0-9a-fA-F]{6}$', color):
-        await ctx.reply('Invalid color format. Please provide a valid hex color code (e.g., #c249ff).')
-        return
-
-    parsed_role_pairs = []
-    for role_pair in role_pairs:
-        role_pair = role_pair.strip()  # Remove leading and trailing whitespace
-        match = re.match(r'(<a?:\w+:\d+>|:\w+:)\s*<@&(\d+)>', role_pair)
-        if match:
-            parsed_role_pairs.append((match.group(1), match.group(2)))
-        else:
-            await ctx.reply(f'Invalid format for role pair: {role_pair}\n'
-                            'Please use the format ":emoji: @role".\n'
-                            'Usage: !createreactionroles (optional: channel_id) "Title" #c249ff :emoji: @role :emoji: @role')
-            return
+    # Convert color to integer representation
+    color = int(color.lstrip('#'), 16)
 
     # Fetch the target channel based on provided channel_id or use current channel
     target_channel = ctx.guild.get_channel(channel_id) if channel_id else ctx.channel
 
     # Create embed
-    embed = discord.Embed(title=title, color=int(color.lstrip('#'), 16))
+    embed = discord.Embed(title=title, color=color)
     embed.set_footer(text="React to this message to get the corresponding role")
 
     description = ""
-    for emoji, role_id in parsed_role_pairs:
-        role = ctx.guild.get_role(int(role_id))
-        if role:
-            description += f"{emoji} - {role.name}\n"
+    for item in role_pairs:
+        description += f"{item}\n"
     embed.description = description
 
     message = await target_channel.send(embed=embed)
-    
-    # React to the message with the emojis
-    for emoji, _ in parsed_role_pairs:
-        await message.add_reaction(emoji)
-    
-    # Save message ID, channel ID, and role pairs for future use
-    try:
-        with open('reaction_roles.json', 'r') as f:
-            reaction_roles_data = json.load(f)
-    except FileNotFoundError:
-        reaction_roles_data = {}
 
-    reaction_roles_data[str(message.id)] = {
-        'channel_id': target_channel.id,
-        'role_pairs': parsed_role_pairs
-    }
-
-    with open('reaction_roles.json', 'w') as f:
-        json.dump(reaction_roles_data, f, indent=4)
-
-    # No reply here to indicate message creation success
+    # React to the message with emojis
+    for item in role_pairs:
+        await message.add_reaction(item)
 
 # Command to add reaction roles to an existing message
 @bot.command()
