@@ -213,21 +213,16 @@ async def createreactionroles(ctx, channel_or_title_or_color: str, *args):
             await ctx.reply(f"Invalid argument: {arg}")
 
     # Validate required parameters
-    if not channel_id:
-        await ctx.reply('Please provide a valid channel ID.')
-        return
-    if not title:
-        await ctx.reply('Please provide a title for the reaction roles message.')
-        return
-    if not color:
-        await ctx.reply('Please provide a valid color in hex format (e.g., #c249ff).')
+    if not channel_id and not title and not color:
+        await ctx.reply('Please provide a valid channel ID, title (in quotes), or color (starting with #).')
         return
     if not role_pairs:
         await ctx.reply('Please provide at least one role-emoji pair.')
         return
 
     # Convert color to integer representation
-    color = int(color.lstrip('#'), 16)
+    if color:
+        color = int(color.lstrip('#'), 16)
 
     # Fetch the target channel based on provided channel_id or use current channel
     target_channel = ctx.guild.get_channel(channel_id) if channel_id else ctx.channel
