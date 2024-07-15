@@ -171,7 +171,7 @@ async def remove(ctx, target_id: str = None):
     await ctx.reply('User not found in our website members list.')
 
 @bot.command()
-async def createreactionroles(ctx, title: str = None, *roles: str):
+async def createreactionroles(ctx, *args):
     if ctx.channel.id != ALLOWED_CHANNEL_ID:
         await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
         return
@@ -180,34 +180,38 @@ async def createreactionroles(ctx, title: str = None, *roles: str):
         await ctx.reply("You do not have permission to use this command.")
         return
 
-    if not title:
-        await ctx.reply('Please provide a title for the reaction role message.\n'
-                        'Usage: !createreactionroles "Title" ":emoji: @role" ":emoji: @role"')
+    if len(args) < 2:
+        await ctx.reply('Please provide a title for the reaction role message, a color (hex code), and at least one emoji-role pair.\n'
+                        'Usage: !createreactionroles "Title" #c249ff :emoji: @role :emoji: @role')
         return
 
-    if len(roles) < 1:
-        await ctx.reply('Please provide at least one emoji-role pair in the format ":emoji: @role".\n'
-                        'Usage: !createreactionroles "Title" ":emoji: @role" ":emoji: @role"')
+    title = args[0]
+    color = args[1]
+    role_pairs = args[2:]
+
+    # Validate color format (must be a hex code)
+    if not re.match(r'^#[0-9a-fA-F]{6}$', color):
+        await ctx.reply('Invalid color format. Please provide a valid hex color code (e.g., #c249ff).')
         return
 
-    role_pairs = []
-    for role_pair in roles:
+    parsed_role_pairs = []
+    for role_pair in role_pairs:
         role_pair = role_pair.strip()  # Remove leading and trailing whitespace
         match = re.match(r'(<a?:\w+:\d+>|:\w+:)\s*<@&(\d+)>', role_pair)
         if match:
-            role_pairs.append((match.group(1), match.group(2)))
+            parsed_role_pairs.append((match.group(1), match.group(2)))
         else:
             await ctx.reply(f'Invalid format for role pair: {role_pair}\n'
                             'Please use the format ":emoji: @role".\n'
-                            'Usage: !createreactionroles "Title" ":emoji: @role" ":emoji: @role"')
+                            'Usage: !createreactionroles "Title" #c249ff :emoji: @role :emoji: @role')
             return
 
     # Create embed
-    embed = discord.Embed(title=title, color=discord.Color.blue())
+    embed = discord.Embed(title=title, color=int(color.lstrip('#'), 16))
     embed.set_footer(text="React to this message to get the corresponding role")
 
     description = ""
-    for emoji, role_id in role_pairs:
+    for emoji, role_id in parsed_role_pairs:
         role = ctx.guild.get_role(int(role_id))
         if role:
             description += f"{emoji} - {role.name}\n"
@@ -216,7 +220,7 @@ async def createreactionroles(ctx, title: str = None, *roles: str):
     message = await ctx.send(embed=embed)
     
     # React to the message with the emojis
-    for emoji, _ in role_pairs:
+    for emoji, _ in parsed_role_pairs:
         await message.add_reaction(emoji)
     
     # Save message ID, channel ID, and role pairs for future use
@@ -228,13 +232,11 @@ async def createreactionroles(ctx, title: str = None, *roles: str):
 
     reaction_roles_data[str(message.id)] = {
         'channel_id': ctx.channel.id,
-        'role_pairs': role_pairs
+        'role_pairs': parsed_role_pairs
     }
 
     with open('reaction_roles.json', 'w') as f:
         json.dump(reaction_roles_data, f, indent=4)
-
-    await ctx.reply('Reaction role message created successfully.')
 
 # Event handler for adding roles on reaction add
 @bot.event
@@ -273,6 +275,86 @@ async def on_raw_reaction_remove(payload):
                 if role:
                     await member.remove_roles(role)
                     print(f'Removed role {role.name} from {member.name}')
+
+@bot.command()
+async def addreactionroles(ctx, message_id: int, *roles: discord.Role):
+    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
+        return
+
+    if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
+        await ctx.reply("You do not have permission to use this command.")
+        return
+
+    # Fetch the reaction role data
+    try:
+        with open('reaction_roles.json', 'r') as f:
+            reaction_roles_data = json.load(f)
+    except FileNotFoundError:
+        await ctx.reply('No reaction roles data found.')
+        return
+
+    # Check if the provided message_id exists in reaction_roles_data
+    str_message_id = str(message_id)
+    if str_message_id not in reaction_roles_data:
+        await ctx.reply(f'Reaction role message with ID {message_id} not found.')
+        return
+
+    # Get the existing role pairs
+    role_pairs = reaction_roles_data[str_message_id]['role_pairs']
+
+    # Append new roles to the existing role_pairs
+    for role in roles:
+        role_pairs.append((f'<:role_{role.id}>', str(role.id)))  # Use a unique emoji for each role
+
+    # Update reaction_roles_data with the modified role_pairs
+    reaction_roles_data[str_message_id]['role_pairs'] = role_pairs
+
+    # Save the updated reaction_roles_data
+    with open('reaction_roles.json', 'w') as f:
+        json.dump(reaction_roles_data, f, indent=4)
+
+    await ctx.reply(f'Added {len(roles)} roles to reaction role message {message_id}.')
+
+@bot.command()
+async def addreactionroles(ctx, message_id: int, *roles: discord.Role):
+    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+        await ctx.reply(f'Commands are restricted to <#{ALLOWED_CHANNEL_ID}> channel.')
+        return
+
+    if not any(role.id == ROLE_IDS["Moderator"] for role in ctx.author.roles):
+        await ctx.reply("You do not have permission to use this command.")
+        return
+
+    # Fetch the reaction role data
+    try:
+        with open('reaction_roles.json', 'r') as f:
+            reaction_roles_data = json.load(f)
+    except FileNotFoundError:
+        await ctx.reply('No reaction roles data found.')
+        return
+
+    # Check if the provided message_id exists in reaction_roles_data
+    str_message_id = str(message_id)
+    if str_message_id not in reaction_roles_data:
+        await ctx.reply(f'Reaction role message with ID {message_id} not found.')
+        return
+
+    # Get the existing role pairs
+    role_pairs = reaction_roles_data[str_message_id]['role_pairs']
+
+    # Append new roles to the existing role_pairs
+    for role in roles:
+        role_pairs.append((f'<:role_{role.id}>', str(role.id)))  # Use a unique emoji for each role
+
+    # Update reaction_roles_data with the modified role_pairs
+    reaction_roles_data[str_message_id]['role_pairs'] = role_pairs
+
+    # Save the updated reaction_roles_data
+    with open('reaction_roles.json', 'w') as f:
+        json.dump(reaction_roles_data, f, indent=4)
+
+    await ctx.reply(f'Added {len(roles)} roles to reaction role message {message_id}.')
 
 # Keep the bot running
 bot.run(TOKEN)
