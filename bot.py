@@ -8,8 +8,13 @@ import re  # For regular expressions
 from datetime import datetime
 from typing import Union  # Import Union from typing module
 
-# Use the provided token
-TOKEN = 'MTIzNjE0MzgzNTM4MjI4NDM0MA.GmgbKN.xlG44fdqyKodmXTA3CbuVwtYKtPN5619otq7nM'
+# Function to load token from a file
+def load_token():
+    with open('token.txt', 'r') as f:
+        return f.read().strip()  # Read and remove any leading/trailing whitespace
+
+# Run the bot with the token loaded from the file
+bot.run(load_token())
 
 # Set up the intents
 intents = discord.Intents.default()
