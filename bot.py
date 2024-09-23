@@ -353,4 +353,4 @@ async def uptime(ctx):
     await ctx.send(uptime_msg)
 
 # Run the bot with the provided token
-bot.run(load_token)
+bot.run(load_token())
