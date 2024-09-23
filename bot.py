@@ -13,9 +13,6 @@ def load_token():
     with open('token.txt', 'r') as f:
         return f.read().strip()  # Read and remove any leading/trailing whitespace
 
-# Run the bot with the token loaded from the file
-bot.run(load_token())
-
 # Set up the intents
 intents = discord.Intents.default()
 intents.message_content = True  # Enable the intent to read message content (required for command handling)
@@ -356,4 +353,4 @@ async def uptime(ctx):
     await ctx.send(uptime_msg)
 
 # Run the bot with the provided token
-bot.run(TOKEN)
+bot.run(load_token)
