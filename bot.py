@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import json
 import shutil  # For file operations
 import time
@@ -8,6 +8,11 @@ import re  # For regular expressions
 from datetime import datetime
 from typing import Union  # Import Union from typing module
 from discord import app_commands  # Import app_commands for slash commands
+from pypresence import Presence  # Import Presence for RPC
+
+# Your Discord application ID
+APP_ID = '1236143835382284340'  # Replace with your application ID
+RPC = Presence(APP_ID)   # Create an RPC instance
 
 # Function to load token from a file
 def load_token():
@@ -44,10 +49,22 @@ bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
 # Store bot startup time
 bot.startup_time = datetime.now()
 
+# Function to set the bot's rich presence
+def set_rpc():
+    RPC.connect()
+    RPC.update(
+        state="Playing osu!",
+        details="Get ready to play!",
+        large_image="osu_logo",  # The key name you will use to reference your image
+        large_text="osu! Game",
+        start=int(time.time())  # Start timestamp
+    )
+
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Game(name="osu!"))
+    set_rpc()  # Set the RPC when the bot is ready
+    await set_rich_presence()  # Set the bot's rich presence
     print(f'Bot is online as {bot.user}')
     # Sync slash commands
     await bot.tree.sync()
@@ -91,37 +108,10 @@ async def uptime(interaction: discord.Interaction):
 
     await interaction.response.send_message(uptime_msg)
 
-# Command to check bot's latency (non-slash command)
-@bot.command()
-async def ping(ctx):
-    print('Ping command received')
-    start_time = time.monotonic()
-    message = await ctx.reply('Pong!')
-    end_time = time.monotonic()
-    latency_ms = round((end_time - start_time) * 1000)
-    await message.edit(content=f'Pong! ({latency_ms} ms)')
-
-# Command to check bot's uptime (non-slash command)
-@bot.command()
-async def uptime(ctx):
-    delta = datetime.now() - bot.startup_time
-    days = delta.days
-    hours, remainder = divmod(delta.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    # Construct the uptime message
-    uptime_msg = "Uptime: "
-
-    # Conditional formatting based on elapsed time
-    if days > 0:
-        uptime_msg += f"{days}d "
-    if hours > 0:
-        uptime_msg += f"{hours}h "
-    if minutes > 0:
-        uptime_msg += f"{minutes}m "
-    uptime_msg += f"{seconds}s"
-
-    await ctx.reply(uptime_msg)
+# Function to set the bot's rich presence (Discord Game)
+async def set_rich_presence():
+    activity = discord.Game(name="Playing osu!")
+    await bot.change_presence(activity=activity)
 
 # Command to register a user with osu! ID and roles-based status
 @bot.command()
