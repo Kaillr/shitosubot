@@ -50,8 +50,8 @@ bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True)
 bot.startup_time = datetime.now()
 
 # Function to set the bot's rich presence
-def set_rpc():
-    RPC.connect()
+async def set_rpc():
+    await bot.loop.run_in_executor(None, RPC.connect)  # Connect in a separate thread
     RPC.update(
         state="Playing osu!",
         details="Get ready to play!",
@@ -63,8 +63,7 @@ def set_rpc():
 # Event triggered when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
-    set_rpc()  # Set the RPC when the bot is ready
-    await set_rich_presence()  # Set the bot's rich presence
+    await set_rpc()  # Set the RPC when the bot is ready
     print(f'Bot is online as {bot.user}')
     # Sync slash commands
     await bot.tree.sync()
